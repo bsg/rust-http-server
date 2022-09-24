@@ -3,6 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct HttpHeader {
     pub length: usize,
+    pub method: String,
     pub uri: String,
     pub version: String,
     pub headers: HashMap<String, String>,
@@ -24,8 +25,8 @@ impl HttpRequest {
     pub fn parse(buffer: &str) -> HttpParseResult {
         match buffer.find("\r\n\r\n") {
             Some(len) => {
-                let mut request_type = "";
                 let mut header = HttpHeader {
+                    method: "".to_string(),
                     length: len + 4,
                     uri: "".to_string(),
                     version: "".to_string(),
@@ -38,24 +39,24 @@ impl HttpRequest {
                         let mut it = line.split(|c: char| c == ' ');
                         match it.next() {
                             Some(s) => {
-                                request_type = s;
+                                header.method = s.to_string();
                             }
-                            None => return HttpParseResult::Err("Malformed header".to_string()),
+                            None => return HttpParseResult::Err("Malformed request".to_string()),
                         }
                         match it.next() {
                             Some(s) => {
                                 header.uri = s.to_string();
                             }
-                            None => return HttpParseResult::Err("Malformed header".to_string()),
+                            None => return HttpParseResult::Err("Malformed request".to_string()),
                         }
                         match it.next() {
                             Some(s) => {
                                 header.version = s.to_string();
                             }
-                            None => return HttpParseResult::Err("Malformed header".to_string()),
+                            None => return HttpParseResult::Err("Malformed request".to_string()),
                         }
                     }
-                    None => return HttpParseResult::Err("Malformed header".to_string()),
+                    None => return HttpParseResult::Err("Malformed request".to_string()),
                 }
 
                 for line in lines {
@@ -83,12 +84,12 @@ impl HttpRequest {
                     header.headers.insert(key, value);
                 }
 
-                if request_type == "GET" {
+                if header.method == "GET" {
                     HttpParseResult::Ok(HttpRequest::GET(header))
-                } else if request_type == "POST" {
+                } else if header.method == "POST" {
                     HttpParseResult::Ok(HttpRequest::POST(header))
                 } else {
-                    HttpParseResult::Err("Incorrect request type".to_string())
+                    HttpParseResult::Err("Incorrect request method".to_string())
                 }
             }
             None => HttpParseResult::Incomplete,
