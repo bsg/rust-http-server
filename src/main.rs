@@ -33,33 +33,35 @@ async fn process(mut socket: TcpStream) {
     let mut buf = AsciiString::with_capacity(1024 * 16);
 
     loop {
-        socket.readable().await;
-        match socket.try_read(&mut chunk) {
-            Ok(0) => break,
-            Ok(n) => {
-                buf.push_str(AsciiStr::from_ascii(&chunk[0..n]).unwrap());
-                match http::HttpRequest::parse(&buf.as_str()) {
-                    HttpParseResult::Ok(header) => match header {
-                        http::HttpRequest::GET(header) => {
-                            let header = dbg!(header);
-                            socket = respond_time(socket, header);
-                            buf.clear();
+        match socket.readable().await {
+            Ok(_) => match socket.try_read(&mut chunk) {
+                Ok(0) => break,
+                Ok(n) => {
+                    buf.push_str(AsciiStr::from_ascii(&chunk[0..n]).unwrap());
+                    match http::HttpRequest::parse(&buf.as_str()) {
+                        HttpParseResult::Ok(header) => match header {
+                            http::HttpRequest::GET(header) => {
+                                let header = dbg!(header);
+                                socket = respond_time(socket, header);
+                                buf.clear();
+                            }
+                            http::HttpRequest::POST(_) => (),
+                        },
+                        HttpParseResult::Incomplete => continue,
+                        HttpParseResult::Err(e) => {
+                            println!("{e:?}");
                         }
-                        http::HttpRequest::POST(_) => (),
-                    },
-                    HttpParseResult::Incomplete => continue,
-                    HttpParseResult::Err(e) => {
-                        println!("{e:?}");
                     }
                 }
-            }
-            Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
-                continue;
-            }
-            Err(e) => {
-                println!("{e:?}");
-                break;
-            }
+                Err(ref e) if e.kind() == io::ErrorKind::WouldBlock => {
+                    continue;
+                }
+                Err(e) => {
+                    println!("{e:?}");
+                    break;
+                }
+            },
+            Err(e) => println!("{e:?}"),
         }
     }
 }
@@ -67,7 +69,7 @@ async fn process(mut socket: TcpStream) {
 fn respond_time(socket: TcpStream, header: HttpHeader) -> TcpStream {
     let now = SystemTime::now();
     let datetime: DateTime<Utc> = now.into();
-    let mut content = datetime.format("%d/%m/%Y %T").to_string();
+    let mut content = datetime.format("%d/%m/%Y %T UTC").to_string();
     content.push_str(format!("\n\n{:#?}", header).as_str());
     let response = format!(
         "HTTP 200 OK\r\nContent-Length: {}\r\n\r\n{}",
