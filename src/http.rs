@@ -13,8 +13,8 @@ pub struct HttpHeader {
 
 #[derive(Debug)]
 pub enum HttpRequest {
-    GET(HttpHeader),
-    POST(HttpHeader),
+    Get(HttpHeader),
+    Post(HttpHeader),
 }
 
 pub enum HttpParseResult {
@@ -110,12 +110,12 @@ impl HttpRequest {
         if header.method == "GET" {
             (
                 lines.into_inner(),
-                HttpParseResult::Ok(HttpRequest::GET(header)),
+                HttpParseResult::Ok(HttpRequest::Get(header)),
             )
         } else if header.method == "POST" {
             (
                 lines.into_inner(),
-                HttpParseResult::Ok(HttpRequest::POST(header)),
+                HttpParseResult::Ok(HttpRequest::Post(header)),
             )
         } else {
             (

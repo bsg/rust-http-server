@@ -49,12 +49,12 @@ async fn process(mut socket: TcpStream) {
         (rx, request) = HttpRequest::from_stream(rx).await;
         match request {
             HttpParseResult::Ok(request) => match request {
-                HttpRequest::GET(header) => {
+                HttpRequest::Get(header) => {
                     println!("GET {}", header.uri);
                     (rx, tx) = respond_time(rx, tx, header).await;
                     tx.flush().await;
                 }
-                HttpRequest::POST(header) => {
+                HttpRequest::Post(header) => {
                     println!("POST {}", header.uri);
                 }
             },
